@@ -8,3 +8,7 @@ int init_server(int port);
 
 // 새로운 클라이언트 연결 처리
 void handle_new_connection(int sfd, int epoll_fd);
+
+void response(int cfd, int status, const char *statusM, const char *types, const char *body);
+
+#endif

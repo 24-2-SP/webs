@@ -7,7 +7,7 @@ OBJ = $(SRC:.c=.o)
 all: asyncserver
 
 asyncserver: $(OBJ)
-	$(CC) $(CFLAGS) -o server $(OBJ)
+	$(CC) $(CFLAGS) -o asyncserver $(OBJ)
 
 clean:
 	rm
