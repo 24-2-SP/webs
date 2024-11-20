@@ -70,7 +70,10 @@ const char *type(const char *fname) {
 
 // GET 요청 처리
 void handle_get(int cfd, const char *fname) {
-    FILE *fp = fopen(fname, "rb");
+    char path[100];
+    snprintf(path, sizeof(file_path), "../../file/%s", fname); // "file/" 경로로 설정
+
+    FILE *fp = fopen(path, "rb");
     if (!fp) {
         response(cfd, 404, "Not Found", "text/plain", "File not found");
         return;
@@ -84,7 +87,7 @@ void handle_get(int cfd, const char *fname) {
     if (buf) fread(buf, 1, file_size, fp);
     fclose(fp);
 
-    const char *mime_type = type(fname);
+    const char *mime_type = type(path);
 
     char header[512];
     snprintf(header, sizeof(header),
