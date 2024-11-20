@@ -71,7 +71,7 @@ const char *type(const char *fname) {
 // GET 요청 처리
 void handle_get(int cfd, const char *fname) {
     char path[100];
-    snprintf(path, sizeof(file_path), "../../file/%s", fname); // "file/" 경로로 설정
+    snprintf(path, sizeof(path), "../../file/%s", fname); // "file/" 경로로 설정
 
     FILE *fp = fopen(path, "rb");
     if (!fp) {
