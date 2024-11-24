@@ -8,12 +8,13 @@ typedef struct httpserver {
     char ip[16];
     int port;
     int weight;
-    int current_weight;
+    int active_connections;
 } httpserver;
 
 void init_http_servers(httpserver servers[], int count);
 
 httpserver round_robin();
 httpserver weighted_round_robin();
+httpserver least_connection();
 
 #endif
