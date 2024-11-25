@@ -1,7 +1,11 @@
 #include "server.h"
 #include "http.h"
 #include "utils.h"
+#include <signal.h>
 #include <stdlib.h>
+#include <stdio.h> 
+#include <unistd.h> 
+#include <sys/epoll.h>
 
 #define MAX_EVENTS 1024
 
