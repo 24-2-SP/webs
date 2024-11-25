@@ -1,4 +1,5 @@
 // 비동기 http server
+#include "../include/server.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,7 +44,7 @@ int init_server()
     struct sockaddr_in server_addr;
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(PORT);
+    server_addr.sin_port = htons(12345);
     server_addr.sin_addr.s_addr = INADDR_ANY;
 
     if (bind(sfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
@@ -72,7 +73,7 @@ void handle_connection(int sfd, int epoll_fd)
     if (cfd == -1)
     {
         perror("accept failed");
-        continue;
+        exit(1);
     }
 
     printf("New client connected: %d\n", cfd);
