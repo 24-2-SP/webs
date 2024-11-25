@@ -81,6 +81,7 @@ void handle_connection(int sfd, int epoll_fd)
     printf("New client connected: %d\n", cfd);
     set_non_blocking(cfd);
 
+    struct epoll_event ev;
     ev.events = EPOLLIN | EPOLLET; // Edge-triggered 읽기 이벤트
     ev.data.fd = cfd;
     if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, cfd, &ev) == -1)
