@@ -63,7 +63,7 @@ int init_server()
         exit(1);
     }
 
-    printf("Server is running on port %d\n", PORT);
+    printf("Server is running on port 12345\n");
     return sfd;
 }
 
