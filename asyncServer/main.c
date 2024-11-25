@@ -1,6 +1,7 @@
 #include "./include/server.h"
 #include "./include/http.h"
 #include "./include/utils.h"
+#include "../include/main.h"
 #include <signal.h>
 #include <stdlib.h>
 #include <stdio.h> 
