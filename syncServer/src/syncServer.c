@@ -6,8 +6,6 @@
 #include <arpa/inet.h>
 #include <signal.h>
 
-
-
 // 서버 초기화 함수
 int init()
 {
@@ -53,4 +51,3 @@ int init()
     printf("server on port 12345 is running\n");
     return sfd;
 }
-

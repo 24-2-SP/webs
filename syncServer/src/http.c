@@ -7,10 +7,11 @@
 #include <arpa/inet.h>
 #include <signal.h>
 
+
 // 클라이언트 요청 처리
 void handle_req(int cfd)
 {
-    char buf[4096];
+    char buf[BUFFER_SIZE];
     int bytes = read(cfd, buf, sizeof(buf) - 1);
 
     if (bytes <= 0)
@@ -55,7 +56,9 @@ void handle_get(int cfd, const char *fname)
     long file_size = ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
+    //파일 크기만큼 메모리 할당 
     char *buf = (char *)malloc(file_size);
+    
     if (buf)
         fread(buf, 1, file_size, fp);
     fclose(fp);
@@ -77,15 +80,61 @@ void handle_get(int cfd, const char *fname)
 // http 응답 -> 클라이언트로 전송
 void response(int cfd, int status, const char *statusM, const char *types, const char *body)
 {
-    char buf[4096];
-    // 응답 header&body
-    snprintf(buf, sizeof(buf),
-             "HTTP/1.1 %d %s\r\n"
-             "Content-Type: %s\r\n"
-             "Content-Length: %ld\r\n"
-             "\r\n"
-             "%s",
-             status, statusM, types, strlen(body), body);
-    // buf 내용 -> 클라이언트 소켓 (cfd)
+    // char buf[BUFFER_SIZE];
+    
+    // // 응답 header&body
+    // snprintf(buf, sizeof(buf),
+    //          "HTTP/1.1 %d %s\r\n"
+    //          "Content-Type: %s\r\n"
+    //          "Content-Length: %ld\r\n"
+    //          "\r\n"
+    //          "%s",
+    //          status, statusM, types, strlen(body), body);
+    // // buf 내용 -> 클라이언트 소켓 (cfd)
+    // write(cfd, buf, strlen(buf));
+
+
+    //snprintf 동적으로 버퍼 크기 확장
+    size_t size = 512; //초기버퍼 크기
+    char *buf = (char *)malloc(size);
+    if (!buf)
+    {
+        perror("malloc failed");
+        close(cfd);
+        return;
+    }
+    int needed_size = snprintf(buf, size,
+                                "HTTP/1.1 %d %s\r\n"
+                                "Content-Type: %s\r\n"
+                                "Content-Length: %ld\r\n"
+                                "\r\n"
+                                "%s",
+                                status, statusM, types, strlen(body), body);
+
+    // 반환된 크기가 현재 버퍼 크기를 초과하는 경우
+    if (needed_size >= size)
+    {
+        size = needed_size + 1; // null-terminator 포함
+        buf = (char *)realloc(buf, size);
+        if (!buf)
+        {
+            perror("realloc failed");
+            close(cfd);
+            return;
+        }
+
+        // 다시 작성
+        snprintf(buf, size,
+                 "HTTP/1.1 %d %s\r\n"
+                 "Content-Type: %s\r\n"
+                 "Content-Length: %ld\r\n"
+                 "\r\n"
+                 "%s",
+                 status, statusM, types, strlen(body), body);
+    }
+
+    // 클라이언트로 데이터 전송
     write(cfd, buf, strlen(buf));
+    free(buf);
+
 }

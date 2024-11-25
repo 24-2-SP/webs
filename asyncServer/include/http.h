@@ -1,7 +1,7 @@
 #ifndef HTTP_H
 #define HTTP_H
 
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 512
 
 // 클라이언트 요청 처리 함수
 void handle_client_request(int cfd, int epoll_fd);

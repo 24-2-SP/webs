@@ -1,7 +1,7 @@
 #ifndef HTTP_H
 #define HTTP_H
 
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 512
 
 
 // HTTP 요청을 분석하고 처리
