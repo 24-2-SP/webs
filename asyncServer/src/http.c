@@ -43,7 +43,7 @@ void handle_req(int cfd, const char *buf)
 void handle_get(int cfd, const char *fname)
 {
     char path[100];
-    snprintf(path, sizeof(path), "../file/%s", fname);
+    snprintf(path, sizeof(path), "file/%s", fname);
 
     FILE *fp = fopen(path, "rb");
     if (!fp)
