@@ -1,6 +1,7 @@
 #include "server.h"
 #include "http.h"
 #include "utils.h"
+#include <stdlib.h>
 
 #define MAX_EVENTS 1024
 
