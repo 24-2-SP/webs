@@ -1,11 +1,4 @@
-#include "./include/server.h"
-#include "./include/http.h"
-#include "./include/utils.h"
-#include <signal.h>
-#include <stdlib.h>
-#include <stdio.h> 
-#include <unistd.h> 
-
+#include "./include/main.h"
 
 int main()
 {
@@ -15,7 +8,7 @@ int main()
     sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
     sigaction(SIGCHLD, &sa, NULL);
 
-    //서버 초기화
+    // 서버 초기화
     int sfd = init();
     struct sockaddr_in cli;
     socklen_t clen = sizeof(cli);
@@ -35,10 +28,11 @@ int main()
         pid_t pid = fork();
         if (pid == 0)
         {
-            // 자식 프로세스
-            close(sfd); // 서버 소켓 닫기
-            handle_req(cfd);
-            exit(0);
+            // 자식 프로세스에서 클라이언트 요청 처리
+            close(sfd); // 부모 서버 소켓 닫기
+            handle_req(cfd); //클라이언트 요청 처리
+            close(cfd); //클라이언트 소켓 닫기
+            exit(0); 
         }
         else if (pid > 0)
         {

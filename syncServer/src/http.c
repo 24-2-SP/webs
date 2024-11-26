@@ -1,11 +1,4 @@
-#include "../include/http.h"
-#include "../include/utils.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <signal.h>
+#include "../include/main.h"
 
 
 // 클라이언트 요청 처리
@@ -95,15 +88,14 @@ void response(int cfd, int status, const char *statusM, const char *types, const
 
 
     //snprintf 동적으로 버퍼 크기 확장
-    size_t size = 512; //초기버퍼 크기
-    char *buf = (char *)malloc(size);
+    char *buf = (char *)malloc(BUFFER_SIZE);
     if (!buf)
     {
         perror("malloc failed");
         close(cfd);
         return;
     }
-    int needed_size = snprintf(buf, size,
+    int needed_size = snprintf(buf, BUFFER_SIZE,
                                 "HTTP/1.1 %d %s\r\n"
                                 "Content-Type: %s\r\n"
                                 "Content-Length: %ld\r\n"
@@ -112,9 +104,9 @@ void response(int cfd, int status, const char *statusM, const char *types, const
                                 status, statusM, types, strlen(body), body);
 
     // 반환된 크기가 현재 버퍼 크기를 초과하는 경우
-    if (needed_size >= size)
+    if (needed_size >= BUFFER_SIZE)
     {
-        size = needed_size + 1; // null-terminator 포함
+        size_t size = needed_size + 1; // null-terminator 포함
         buf = (char *)realloc(buf, size);
         if (!buf)
         {

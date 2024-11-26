@@ -1,10 +1,6 @@
-#include "../include/server.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <signal.h>
+
+#include "../include/main.h"
+
 
 // 서버 초기화 함수
 int init()
@@ -30,7 +26,7 @@ int init()
     // 서버 구조체 초기화
     memset((char *)&sin, '\0', sizeof(sin));
     sin.sin_family = AF_INET;                   // IPv4 사용
-    sin.sin_port = htons(12345);                // 포트 번호 설정
+    sin.sin_port = htons(PORT);                // 포트 번호 설정
     sin.sin_addr.s_addr = inet_addr("0.0.0.0"); // 모든 네트워크에서 연결 허용
 
     // 소켓을 주소와 바인딩
@@ -40,14 +36,14 @@ int init()
         exit(1);
     }
 
-    // 클라이언트 요청 대기 (최대 1000개)
-    if (listen(sfd, 1000) == -1)
+    // 클라이언트 요청 대기 (최대 5000개) (대기열 크기)
+    if (listen(sfd, 5000) == -1)
     {
         perror("listen failed");
         close(sfd);
         exit(1);
     }
 
-    printf("server on port 12345 is running\n");
+    printf("server on port %d is running\n",PORT);
     return sfd;
 }
