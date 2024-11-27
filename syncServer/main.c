@@ -23,7 +23,7 @@ int main()
             continue;
         }
         printf("new client : %d\n", cfd);
-
+    
         // 자식 프로세스 생성
         pid_t pid = fork();
         if (pid == 0)
