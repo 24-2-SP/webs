@@ -28,10 +28,18 @@ void handle_req(int cfd, const char *buf)
 {
     char method[16], path[256], protocol[16];
     sscanf(buf, "%s %s %s", method, path, protocol);
+    printf("Client request:\n");
+    printf("Method: %s, Path: %s, Protocol: %s\n", method, path, protocol);
 
+
+    // 요청 메소드 GET인 경우 고려
     if (strcmp(method, "GET") == 0)
     {
-        handle_get(cfd, path + 1);
+        handle_get(cfd, path + 1); // GET 요청 처리
+    }
+    else if (strcmp(method, "HEAD") == 0)
+    {
+        handle_head(cfd, path + 1); // HEAD 요청 처리
     }
     else
     {
@@ -73,4 +81,33 @@ void handle_get(int cfd, const char *fname)
     write(cfd, header, strlen(header));
     write(cfd, buf, file_size);
     free(buf);
+}
+
+void handle_head(int cfd, const char *fname)
+{
+    char path[100];
+    snprintf(path, sizeof(path), "file/%s", fname);
+
+    FILE *fp = fopen(path, "rb");
+    if (!fp)
+    {
+        response(cfd, 404, "Not Found", "text/plain", NULL);
+        return;
+    }
+
+    fseek(fp, 0, SEEK_END);
+    long file_size = ftell(fp);
+    fclose(fp);
+
+    const char *mime_type = type(path);
+
+    char header[512];
+    snprintf(header, sizeof(header),
+             "HTTP/1.1 200 OK\r\n"
+             "Content-Type: %s\r\n"
+             "Content-Length: %ld\r\n"
+             "\r\n",
+             mime_type, file_size);
+
+    write(cfd, header, strlen(header));
 }

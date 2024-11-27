@@ -25,5 +25,6 @@ const char *type(const char *fname);
 void set_non_blocking(int fd);
 void handle_sigchld(int sig);
 int init_server();
+void handle_head(int cfd, const char *fname);
 
 #endif // MAIN_H
