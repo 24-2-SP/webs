@@ -10,6 +10,8 @@
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/epoll.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 
 // 서버 설정
 #define PORT 12345
