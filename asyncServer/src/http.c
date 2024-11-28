@@ -60,27 +60,63 @@ void handle_get(int cfd, const char *fname)
         return;
     }
 
-    fseek(fp, 0, SEEK_END);
-    long file_size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-
-    char *buf = (char *)malloc(file_size);
-    if (buf)
-        fread(buf, 1, file_size, fp);
-    fclose(fp);
-
     const char *mime_type = type(path);
+    if (strncmp(mime_type, "image/", 6) == 0)
+    {
+        // 이미지 파일인 경우 청크 전송
+        char header[512];
+        snprintf(header, sizeof(header),
+                 "HTTP/1.1 200 OK\r\n"
+                 "Content-Type: %s\r\n"
+                 "Transfer-Encoding: chunked\r\n"
+                 "\r\n",
+                 mime_type);
+        write(cfd, header, strlen(header));
 
-    char header[512];
-    snprintf(header, sizeof(header),
-             "HTTP/1.1 200 OK\r\n"
-             "Content-Type: %s\r\n"
-             "Content-Length: %ld\r\n"
-             "\r\n",
-             mime_type, file_size);
-    write(cfd, header, strlen(header));
-    write(cfd, buf, file_size);
-    free(buf);
+        // 청크 단위로 파일 읽기 및 전송
+        char buffer[4096];
+        size_t bytes_read;
+        while ((bytes_read = fread(buffer, 1, sizeof(buffer), fp)) > 0)
+        {
+            // 청크 크기 전송
+            char chunk_header[16];
+            snprintf(chunk_header, sizeof(chunk_header), "%zx\r\n", bytes_read);
+            write(cfd, chunk_header, strlen(chunk_header));
+
+            // 실제 데이터 전송
+            write(cfd, buffer, bytes_read);
+
+            // 청크 종료
+            write(cfd, "\r\n", 2);
+        }
+
+        // 마지막 청크(종료 청크) 전송
+        write(cfd, "0\r\n\r\n", 5);
+    }
+    else
+    {
+        fseek(fp, 0, SEEK_END);
+        long file_size = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
+
+        // 파일 크기만큼 메모리 할당
+        char *buf = (char *)malloc(file_size);
+
+        if (buf)
+            fread(buf, 1, file_size, fp);
+        fclose(fp);
+        char header[512]; // 응답 헤더
+        snprintf(header, sizeof(header),
+                 "HTTP/1.1 200 OK\r\n"
+                 "Content-Type: %s\r\n"
+                 "Content-Length: %ld\r\n"
+                 "\r\n",
+                 mime_type, file_size);
+        write(cfd, header, strlen(header));
+
+        write(cfd, buf, file_size);
+        free(buf);
+    }
 }
 
 void handle_head(int cfd, const char *fname)
