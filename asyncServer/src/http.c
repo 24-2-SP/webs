@@ -79,7 +79,7 @@ void handle_get(int cfd, const char *fname)
         while ((bytes_read = fread(buffer, 1, sizeof(buffer), fp)) > 0)
         {
             // 청크 크기 전송
-            char chunk_header[16];
+            char chunk_header[32];
             snprintf(chunk_header, sizeof(chunk_header), "%zx\r\n", bytes_read);
             write(cfd, chunk_header, strlen(chunk_header));
 
