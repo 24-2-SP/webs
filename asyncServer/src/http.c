@@ -31,7 +31,6 @@ void handle_req(int cfd, const char *buf)
     printf("Client request:\n");
     printf("Method: %s, Path: %s, Protocol: %s\n", method, path, protocol);
 
-
     // 요청 메소드 GET인 경우 고려
     if (strcmp(method, "GET") == 0)
     {
@@ -76,22 +75,27 @@ void handle_get(int cfd, const char *fname)
         // 청크 단위로 파일 읽기 및 전송
         char buffer[4096];
         size_t bytes_read;
+        char chunk_header[32];
+
         while ((bytes_read = fread(buffer, 1, sizeof(buffer), fp)) > 0)
         {
             // 청크 크기 전송
-            char chunk_header[32];
-            snprintf(chunk_header, sizeof(chunk_header), "%zx\r\n", bytes_read);
-            write(cfd, chunk_header, strlen(chunk_header));
-
-            // 실제 데이터 전송
+            int needed_size = snprintf(chunk_header, sizeof(chunk_header), "%zx\r\n", bytes_read);
+            if (needed_size >= sizeof(chunk_header))
+            {
+                fprintf(stderr, "Error: Chunk header size exceeded\n");
+                fclose(fp);
+                close(cfd);
+                return;
+            }
+            write(cfd, chunk_header, needed_size);
             write(cfd, buffer, bytes_read);
-
-            // 청크 종료
             write(cfd, "\r\n", 2);
         }
 
         // 마지막 청크(종료 청크) 전송
         write(cfd, "0\r\n\r\n", 5);
+        fclose(fp);
     }
     else
     {
