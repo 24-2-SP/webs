@@ -12,6 +12,8 @@
 #include <sys/epoll.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <errno.h>
+#include <sys/sendfile.h>
 
 
 // 서버 설정
@@ -29,5 +31,6 @@ void set_non_blocking(int fd);
 void handle_sigchld(int sig);
 int init_server();
 void handle_head(int cfd, const char *fname);
+
 
 #endif // MAIN_H
