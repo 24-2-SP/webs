@@ -1,8 +1,5 @@
-#include "../include/utils.h"
 #include "../include/main.h"
-#include <fcntl.h>
-#include <string.h>
-#include <stdio.h>
+
 
 void set_non_blocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);

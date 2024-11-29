@@ -1,14 +1,4 @@
-#include "./include/server.h"
-#include "./include/http.h"
-#include "./include/utils.h"
 #include "../include/main.h"
-#include <signal.h>
-#include <stdlib.h>
-#include <stdio.h> 
-#include <unistd.h> 
-#include <sys/epoll.h>
-
-#define MAX_EVENTS 1024
 
 
 int main()

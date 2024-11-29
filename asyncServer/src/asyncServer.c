@@ -1,12 +1,4 @@
 #include "../include/main.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include <sys/epoll.h>
-
 
 // HTTP 응답 작성 및 전송
 void response(int cfd, int status, const char *statusM, const char *types, const char *body)
