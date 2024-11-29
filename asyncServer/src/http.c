@@ -72,9 +72,10 @@ void handle_get(int cfd, const char *fname)
     write(cfd, header, strlen(header));
 
     off_t offset = 0;
+    const size_t CHUNK_SIZE = 256 * 1024; // 256KB
     while (offset < st.st_size)
     {
-        ssize_t sent = sendfile(cfd, fd, &offset, 65536); // 64KB 청크
+        ssize_t sent = sendfile(cfd, fd, &offset, CHUNK_SIZE);
         if (sent <= 0)
         {
             perror("sendfile failed");
