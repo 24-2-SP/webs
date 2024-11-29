@@ -1,7 +1,3 @@
-// 비동기 http server
-#include "../include/server.h"
-#include "../include/utils.h"
-#include "../include/http.h"
 #include "../include/main.h"
 #include <stdio.h>
 #include <stdlib.h>
