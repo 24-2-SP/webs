@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "server.h": "c",
-        "utils.h": "c"
+        "utils.h": "c",
+        "http.h": "c"
     }
 }
