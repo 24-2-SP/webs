@@ -1,21 +1,28 @@
 #include "../include/main.h"
 
-void handle_client_request(int cfd, int epoll_fd) {
+void handle_client_request(int cfd, int epoll_fd)
+{
     char buf[4096];
-    while (1) {
+    while (1)
+    {
         ssize_t bytes_read = read(cfd, buf, sizeof(buf) - 1);
-        if (bytes_read == 0) {
+        if (bytes_read == 0)
+        {
             // 클라이언트가 연결을 종료했음
             printf("Client disconnected: %d\n", cfd);
             close(cfd);
             epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cfd, NULL);
             return;
         }
-        if (bytes_read < 0) {
-            if (errno == EAGAIN) {
+        if (bytes_read < 0)
+        {
+            if (errno == EAGAIN)
+            {
                 // 더 이상 읽을 데이터 없음
                 break;
-            } else {
+            }
+            else
+            {
                 perror("Read failed");
                 close(cfd);
                 epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cfd, NULL);
@@ -27,17 +34,23 @@ void handle_client_request(int cfd, int epoll_fd) {
         printf("Request: %s\n", buf);
 
         // 요청 처리 (예: GET 요청)
-        if (strncmp(buf, "GET", 3) == 0) {
+        if (strncmp(buf, "GET", 3) == 0)
+        {
             handle_get(cfd, buf + 4); // GET 요청 처리
-        } else {
+        }
+        else
+        {
             // 알 수 없는 요청
             response(cfd, 400, "Bad Request", "text/plain", "Unsupported request");
         }
 
         // 요청 완료 후 연결 종료
-        close(cfd);
-        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cfd, NULL);
-        return;
+        if (bytes_read == 0 || (bytes_read < 0 && errno != EAGAIN))
+        {
+            // 클라이언트가 연결 종료 또는 에러 발생
+            close(cfd);
+            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cfd, NULL);
+        }
     }
 }
 
@@ -108,7 +121,6 @@ void handle_get(int cfd, const char *fname)
     }
 
     close(fd);
-    
 }
 
 // void handle_get(int cfd, const char *fname)
