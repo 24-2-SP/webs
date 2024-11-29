@@ -22,7 +22,7 @@
 #define BUFFER_SIZE 512
 
 // 함수 선언
-void handle_connection(int sfd, int epoll_fd)
+void handle_connection(int sfd, int epoll_fd);
 void handle_client_request(int cfd, int epoll_fd);
 void handle_req(int cfd, const char *buf);
 void handle_get(int cfd, const char *fname);
