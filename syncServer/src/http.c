@@ -36,6 +36,7 @@ void handle_req(int cfd)
     }
 }
 
+//파일 전송
 void handle_get(int cfd, const char *fname)
 {
     char path[100];
