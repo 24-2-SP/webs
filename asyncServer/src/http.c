@@ -1,6 +1,5 @@
 #include "../include/main.h"
 
-
 void handle_client_request(int cfd, int epoll_fd)
 {
     char buf[BUFFER_SIZE];
@@ -53,7 +52,6 @@ void handle_get(int cfd, const char *fname)
         return;
     }
 
-    // 파일 정보 가져오기
     struct stat st;
     if (fstat(fd, &st) == -1)
     {
@@ -64,106 +62,152 @@ void handle_get(int cfd, const char *fname)
     }
 
     const char *mime_type = type(path);
+    char header[512];
+    snprintf(header, sizeof(header),
+             "HTTP/1.1 200 OK\r\n"
+             "Content-Type: %s\r\n"
+             "Content-Length: %ld\r\n"
+             "\r\n",
+             mime_type, st.st_size);
+    write(cfd, header, strlen(header));
 
-    // 이미지 파일인 경우 청크 전송
-    if (strncmp(mime_type, "image/", 6) == 0)
+    off_t offset = 0;
+    while (offset < st.st_size)
     {
-        // HTTP 응답 헤더 전송
-        char header[512];
-        snprintf(header, sizeof(header),
-                 "HTTP/1.1 200 OK\r\n"
-                 "Content-Type: %s\r\n"
-                 "Transfer-Encoding: chunked\r\n"
-                 "\r\n",
-                 mime_type);
-        write(cfd, header, strlen(header));
-
-        // 파일을 청크 단위로 매핑 및 전송
-        size_t remaining = st.st_size; // 남은 파일 크기
-        off_t offset = 0;              // 파일 오프셋
-        while (remaining > 0)
+        ssize_t sent = sendfile(cfd, fd, &offset, 65536); // 64KB 청크
+        if (sent <= 0)
         {
-            size_t chunk_size = (remaining > 65536) ? 65536 : remaining; // 최대 64KB씩 전송
-            char *mapped = mmap(NULL, chunk_size, PROT_READ, MAP_PRIVATE, fd, offset);
-            if (mapped == MAP_FAILED)
-            {
-                perror("mmap failed");
-                close(fd);
-                response(cfd, 500, "Internal Server Error", "text/plain", "Unable to process file");
-                return;
-            }
-
-            // 청크 헤더 작성
-            char chunk_header[32];
-            int chunk_header_len = snprintf(chunk_header, sizeof(chunk_header), "%zx\r\n", chunk_size);
-            if (chunk_header_len < 0 || write(cfd, chunk_header, chunk_header_len) == -1)
-            {
-                perror("Write chunk header failed");
-                munmap(mapped, chunk_size);
-                close(fd);
-                return;
-            }
-
-            // 청크 데이터 전송
-            if (write(cfd, mapped, chunk_size) == -1)
-            {
-                perror("Write chunk data failed");
-                munmap(mapped, chunk_size);
-                close(fd);
-                return;
-            }
-
-            // 청크 종료
-            if (write(cfd, "\r\n", 2) == -1)
-            {
-                perror("Write chunk end failed");
-                munmap(mapped, chunk_size);
-                close(fd);
-                return;
-            }
-
-            // 매핑 해제 및 이동
-            munmap(mapped, chunk_size);
-            offset += chunk_size;
-            remaining -= chunk_size;
+            perror("sendfile failed");
+            break;
         }
-
-        // 마지막 청크(종료 청크) 전송
-        if (write(cfd, "0\r\n\r\n", 5) == -1)
-        {
-            perror("Write final chunk failed");
-        }
-    }
-    else
-    {
-        // 일반 파일 전송
-        char *mapped = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-        if (mapped == MAP_FAILED)
-        {
-            perror("mmap failed");
-            close(fd);
-            response(cfd, 500, "Internal Server Error", "text/plain", "Unable to process file");
-            return;
-        }
-
-        char header[512];
-        snprintf(header, sizeof(header),
-                 "HTTP/1.1 200 OK\r\n"
-                 "Content-Type: %s\r\n"
-                 "Content-Length: %ld\r\n"
-                 "\r\n",
-                 mime_type, st.st_size);
-        write(cfd, header, strlen(header));
-
-        // 파일 데이터 전송
-        write(cfd, mapped, st.st_size);
-
-        // 메모리 매핑 해제
-        munmap(mapped, st.st_size);
     }
 
     close(fd);
 }
+
+// void handle_get(int cfd, const char *fname)
+// {
+//     char path[100];
+//     snprintf(path, sizeof(path), "file/%s", fname);
+
+//     int fd = open(path, O_RDONLY);
+//     if (fd < 0)
+//     {
+//         response(cfd, 404, "Not Found", "text/plain", "File not found");
+//         return;
+//     }
+
+//     // 파일 정보 가져오기
+//     struct stat st;
+//     if (fstat(fd, &st) == -1)
+//     {
+//         perror("fstat failed");
+//         close(fd);
+//         response(cfd, 500, "Internal Server Error", "text/plain", "Unable to process file");
+//         return;
+//     }
+
+//     const char *mime_type = type(path);
+
+//     // 이미지 파일인 경우 청크 전송
+//     if (strncmp(mime_type, "image/", 6) == 0)
+//     {
+//         // HTTP 응답 헤더 전송
+//         char header[512];
+//         snprintf(header, sizeof(header),
+//                  "HTTP/1.1 200 OK\r\n"
+//                  "Content-Type: %s\r\n"
+//                  "Transfer-Encoding: chunked\r\n"
+//                  "\r\n",
+//                  mime_type);
+//         write(cfd, header, strlen(header));
+
+//         // 파일을 청크 단위로 매핑 및 전송
+//         size_t remaining = st.st_size; // 남은 파일 크기
+//         off_t offset = 0;              // 파일 오프셋
+//         while (remaining > 0)
+//         {
+//             size_t chunk_size = (remaining > 65536) ? 65536 : remaining; // 최대 64KB씩 전송
+//             char *mapped = mmap(NULL, chunk_size, PROT_READ, MAP_PRIVATE, fd, offset);
+//             if (mapped == MAP_FAILED)
+//             {
+//                 perror("mmap failed");
+//                 close(fd);
+//                 response(cfd, 500, "Internal Server Error", "text/plain", "Unable to process file");
+//                 return;
+//             }
+
+//             // 청크 헤더 작성
+//             char chunk_header[32];
+//             int chunk_header_len = snprintf(chunk_header, sizeof(chunk_header), "%zx\r\n", chunk_size);
+//             if (chunk_header_len < 0 || write(cfd, chunk_header, chunk_header_len) == -1)
+//             {
+//                 perror("Write chunk header failed");
+//                 munmap(mapped, chunk_size);
+//                 close(fd);
+//                 return;
+//             }
+
+//             // 청크 데이터 전송
+//             if (write(cfd, mapped, chunk_size) == -1)
+//             {
+//                 perror("Write chunk data failed");
+//                 munmap(mapped, chunk_size);
+//                 close(fd);
+//                 return;
+//             }
+
+//             // 청크 종료
+//             if (write(cfd, "\r\n", 2) == -1)
+//             {
+//                 perror("Write chunk end failed");
+//                 munmap(mapped, chunk_size);
+//                 close(fd);
+//                 return;
+//             }
+
+//             // 매핑 해제 및 이동
+//             munmap(mapped, chunk_size);
+//             offset += chunk_size;
+//             remaining -= chunk_size;
+//         }
+
+//         // 마지막 청크(종료 청크) 전송
+//         if (write(cfd, "0\r\n\r\n", 5) == -1)
+//         {
+//             perror("Write final chunk failed");
+//         }
+//     }
+//     else
+//     {
+//         // 일반 파일 전송
+//         char *mapped = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+//         if (mapped == MAP_FAILED)
+//         {
+//             perror("mmap failed");
+//             close(fd);
+//             response(cfd, 500, "Internal Server Error", "text/plain", "Unable to process file");
+//             return;
+//         }
+
+//         char header[512];
+//         snprintf(header, sizeof(header),
+//                  "HTTP/1.1 200 OK\r\n"
+//                  "Content-Type: %s\r\n"
+//                  "Content-Length: %ld\r\n"
+//                  "\r\n",
+//                  mime_type, st.st_size);
+//         write(cfd, header, strlen(header));
+
+//         // 파일 데이터 전송
+//         write(cfd, mapped, st.st_size);
+
+//         // 메모리 매핑 해제
+//         munmap(mapped, st.st_size);
+//     }
+
+//     close(fd);
+// }
 
 // //void handle_get(int cfd, const char *fname)
 // {
