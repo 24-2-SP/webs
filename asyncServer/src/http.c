@@ -2,10 +2,9 @@
 
 void handle_client_request(int cfd, int epoll_fd)
 {
-    char buf[4096];
-    while (1)
-    {
-        ssize_t bytes_read = read(cfd, buf, sizeof(buf) - 1);
+    char buf[BUFFER_SIZE];
+    
+    ssize_t bytes_read = read(cfd, buf, sizeof(buf) - 1);
         if (bytes_read == 0)
         {
             // 클라이언트가 연결을 종료했음
@@ -43,17 +42,10 @@ void handle_client_request(int cfd, int epoll_fd)
             // 알 수 없는 요청
             response(cfd, 400, "Bad Request", "text/plain", "Unsupported request");
         }
-
-        // 요청 완료 후 연결 종료
-        if (bytes_read <= 0 || (bytes_read < 0 && errno != EAGAIN))
-        {
-            // 클라이언트가 연결 종료 또는 에러 발생
-            printf("Closing connection: %d\n", cfd);
-            close(cfd);
-            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cfd, NULL);
-            return ;
-        }
-    }
+    
+    // 요청 처리 완료 후 연결 해제
+    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cfd, NULL);
+    close(cfd);
 }
 
 void handle_req(int cfd, const char *buf)
