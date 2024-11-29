@@ -3,46 +3,48 @@
 void handle_client_request(int cfd, int epoll_fd)
 {
     char buf[BUFFER_SIZE];
-    
+
     ssize_t bytes_read = read(cfd, buf, sizeof(buf) - 1);
-        if (bytes_read == 0)
+    if (bytes_read == 0)
+    {
+        // 클라이언트가 연결을 종료했음
+        printf("Client disconnected: %d\n", cfd);
+        close(cfd);
+        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cfd, NULL);
+        return;
+    }
+    if (bytes_read <= 0)
+    {
+        if (errno == EAGAIN)
         {
-            // 클라이언트가 연결을 종료했음
-            printf("Client disconnected: %d\n", cfd);
+            // 더 이상 읽을 데이터 없음
+            break;
+        }
+        else
+        {
+            perror("Read failed");
             close(cfd);
             epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cfd, NULL);
             return;
         }
-        if (bytes_read <= 0)
-        {
-            if (errno == EAGAIN)
-            {
-                // 더 이상 읽을 데이터 없음
-                break;
-            }
-            else
-            {
-                perror("Read failed");
-                close(cfd);
-                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cfd, NULL);
-                return;
-            }
-        }
+    }
 
-        buf[bytes_read] = '\0'; // 데이터 null-terminate
-        printf("Request: %s\n", buf);
+    buf[bytes_read] = '\0'; // 데이터 null-terminate
+    printf("Request: %s\n", buf);
 
-        // 요청 처리 (예: GET 요청)
-        if (strncmp(buf, "GET", 3) == 0)
-        {
-            handle_get(cfd, buf + 4); // GET 요청 처리
-        }
-        else
-        {
-            // 알 수 없는 요청
-            response(cfd, 400, "Bad Request", "text/plain", "Unsupported request");
-        }
-    
+    // 요청 처리 (예: GET 요청)
+    if (strncmp(buf, "GET", 3) == 0)
+    {
+        handle_get(cfd, buf + 4); // GET 요청 처리
+        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cfd, NULL);
+        close(cfd);
+    }
+    else
+    {
+        // 알 수 없는 요청
+        response(cfd, 400, "Bad Request", "text/plain", "Unsupported request");
+    }
+
     // 요청 처리 완료 후 연결 해제
     epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cfd, NULL);
     close(cfd);
