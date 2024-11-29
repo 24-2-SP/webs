@@ -4,50 +4,63 @@ void handle_client_request(int cfd, int epoll_fd)
 {
     char buf[BUFFER_SIZE];
 
+    // 클라이언트로부터 데이터 읽기
     ssize_t bytes_read = read(cfd, buf, sizeof(buf) - 1);
     if (bytes_read == 0)
     {
         // 클라이언트가 연결을 종료했음
         printf("Client disconnected: %d\n", cfd);
-        close(cfd);
-        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cfd, NULL);
+        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cfd, NULL); // epoll에서 소켓 제거
+        close(cfd); // 소켓 닫기
         return;
     }
+
     if (bytes_read <= 0)
     {
-        if (errno == EAGAIN)
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
         {
             // 더 이상 읽을 데이터 없음
-            break;
+            return;
         }
         else
         {
             perror("Read failed");
-            close(cfd);
-            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cfd, NULL);
+            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cfd, NULL); // epoll에서 소켓 제거
+            close(cfd); // 소켓 닫기
             return;
         }
     }
 
-    buf[bytes_read] = '\0'; // 데이터 null-terminate
+    // 읽은 데이터를 null-terminate하여 문자열 처리
+    buf[bytes_read] = '\0';
     printf("Request: %s\n", buf);
 
-    // 요청 처리 (예: GET 요청)
+    // GET 요청 처리
     if (strncmp(buf, "GET", 3) == 0)
     {
-        handle_get(cfd, buf + 4); // GET 요청 처리
-        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cfd, NULL);
-        close(cfd);
+        // 요청 URL 추출
+        char *path_start = strchr(buf, ' ') + 1; // ' ' 이후가 요청 URL
+        char *path_end = strchr(path_start, ' '); // 다음 ' '에서 끝남
+        if (path_start && path_end)
+        {
+            *path_end = '\0'; // URL 끝에 null-terminate 추가
+            handle_get(cfd, path_start); // GET 요청 처리
+        }
+        else
+        {
+            response(cfd, 400, "Bad Request", "text/plain", "Invalid Request");
+        }
     }
     else
     {
-        // 알 수 없는 요청
+        // 지원하지 않는 요청
         response(cfd, 400, "Bad Request", "text/plain", "Unsupported request");
     }
 
     // 요청 처리 완료 후 연결 해제
-    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cfd, NULL);
-    close(cfd);
+    printf("Closing connection: %d\n", cfd);
+    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cfd, NULL); // epoll에서 소켓 제거
+    close(cfd); // 소켓 닫기
 }
 
 void handle_req(int cfd, const char *buf)
