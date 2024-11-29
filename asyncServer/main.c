@@ -1,6 +1,5 @@
 #include "../include/main.h"
 
-
 int main()
 {
     int sfd = init_server();
@@ -37,6 +36,14 @@ int main()
 
         for (int i = 0; i < num_events; i++)
         {
+            if (events[i].events & (EPOLLHUP | EPOLLERR))
+            {
+                // 연결 종료 또는 에러 발생
+                perror("Client hang-up or error");
+                close(events[i].data.fd);
+                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, events[i].data.fd, NULL);
+                continue;
+            }
             if (events[i].data.fd == sfd)
             { // 새로운 연결 처리
                 handle_connection(sfd, epoll_fd);
