@@ -1,6 +1,33 @@
 #include "../include/main.h"
 
 
+ssize_t send_data(int cfd, const char *data, size_t length)
+{
+    size_t total_sent = 0;
+
+    while (total_sent < length)
+    {
+        ssize_t sent = write(cfd, data + total_sent, length - total_sent);
+        if (sent == -1)
+        {
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+            {
+                // 일시적 오류 - 재시도
+                continue;
+            }
+            else
+            {
+                // 다른 오류 발생
+                perror("Write failed");
+                return -1;
+            }
+        }
+        total_sent += sent; // 총 전송된 데이터 크기 증가
+    }
+
+    return total_sent;
+}
+
 void set_non_blocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
     if (flags == -1) {

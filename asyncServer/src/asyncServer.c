@@ -22,14 +22,15 @@ void response(int cfd, int status, const char *statusM, const char *types, const
     if (needed_size >= BUFFER_SIZE)
     {
         size_t size = needed_size + 1; // null-terminator 포함
-        buf = (char *)realloc(buf, size);
-        if (!buf)
+        char *new_buf = (char *)realloc(buf, size);
+        if (!new_buf)
         {
             perror("realloc failed");
+	    free(buf);
             close(cfd);
             return;
         }
-
+	buf=new_buf;
         // 다시 작성
         snprintf(buf, size,
                  "HTTP/1.1 %d %s\r\n"
@@ -41,7 +42,9 @@ void response(int cfd, int status, const char *statusM, const char *types, const
     }
 
     // 클라이언트로 데이터 전송
-    write(cfd, buf, strlen(buf));
+    if(write(cfd, buf, strlen(buf))==-1){
+	perror("write failed");
+    }
     free(buf);
 }
 
@@ -87,6 +90,7 @@ int init_server()
     return sfd;
 }
 
+atomic_int active_connections = 0;
 void handle_connection(int sfd, int epoll_fd)
 {
     struct sockaddr_in client_addr;
@@ -95,10 +99,14 @@ void handle_connection(int sfd, int epoll_fd)
     if (cfd == -1)
     {
         perror("accept failed");
-        exit(1);
+        return;
     }
 
+    // 동시 연결 수 증가
+    atomic_fetch_add(&active_connections, 1);
     printf("New client connected: %d\n", cfd);
+    printf("Active connections: %d\n", atomic_load(&active_connections));
+
     set_non_blocking(cfd);
 
     struct epoll_event ev;
@@ -108,5 +116,20 @@ void handle_connection(int sfd, int epoll_fd)
     {
         perror("epoll_ctl failed");
         close(cfd);
+
+        // 동시 연결 수 감소 (epoll 등록 실패 시)
+        atomic_fetch_sub(&active_connections, 1);
     }
 }
+
+// 연결 종료 시 동시 연결 수 감소
+void close_connection(int cfd, int epoll_fd)
+{
+    printf("Closing connection: %d\n", cfd);
+    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cfd, NULL); // epoll에서 소켓 제거
+    close(cfd); // 소켓 닫기
+
+    // 동시 연결 수 감소
+    atomic_fetch_sub(&active_connections, 1);
+    printf("Active connections: %d\n", atomic_load(&active_connections));
+} 

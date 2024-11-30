@@ -36,8 +36,8 @@ int init()
         exit(1);
     }
 
-    // 클라이언트 요청 대기 (최대 5000개) (대기열 크기)
-    if (listen(sfd, 5000) == -1)
+    // 클라이언트 요청 대기 (최대 10000개) (대기열 크기)
+    if (listen(sfd, 10000) == -1)
     {
         perror("listen failed");
         close(sfd);
