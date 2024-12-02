@@ -40,8 +40,7 @@ int main()
             {
                 // 연결 종료 또는 에러 발생
                 perror("Client hang-up or error");
-                close(events[i].data.fd);
-                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, events[i].data.fd, NULL);
+                close_connection(events[i].data.fd, epoll_fd);
                 continue;
             }
             if (events[i].data.fd == sfd)

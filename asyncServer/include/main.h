@@ -15,27 +15,22 @@
 #include <errno.h>
 #include <stdatomic.h>
 
-#define CHUNK_SIZE 65536
-
-
-// 서버 설정
 #define PORT 12345
-#define MAX_EVENTS 1024
+#define MAX_EVENTS 10000
 #define BUFFER_SIZE 512
+#define CHUNK_SIZE 65536
 extern atomic_int active_connections;
 
-// 함수 선언
+int init_server();
 void handle_connection(int sfd, int epoll_fd);
 void close_connection(int cfd, int epoll_fd);
 void handle_client_request(int cfd, int epoll_fd);
-void handle_req(int cfd, const char *buf);
 void handle_get(int cfd, const char *fname);
+void handle_head(int cfd, const char *fname);
 void response(int cfd, int status, const char *statusM, const char *types, const char *body);
 const char *type(const char *fname);
 void set_non_blocking(int fd);
 void handle_sigchld(int sig);
-int init_server();
-void handle_head(int cfd, const char *fname);
 ssize_t send_data(int cfd, const char *data, size_t length);
 
 #endif // MAIN_H

@@ -10,8 +10,7 @@ void handle_client_request(int cfd, int epoll_fd)
     {
         // 클라이언트가 연결을 종료했음
         printf("Client disconnected: %d\n", cfd);
-        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cfd, NULL); // epoll에서 소켓 제거
-        close(cfd); // 소켓 닫기
+        close_connection(cfd, epoll_fd);
         return;
     }
 
@@ -26,73 +25,52 @@ void handle_client_request(int cfd, int epoll_fd)
         {
             perror("Read failed");
             close_connection(cfd, epoll_fd);
-	    return;
+            return;
         }
     }
 
     // 읽은 데이터를 null-terminate하여 문자열 처리
     buf[bytes_read] = '\0';
     printf("Request: %s\n", buf);
-	
-    
- 
-        // 요청 URL 추출
-        char *path_start = strchr(buf, ' ');
-	if(!path_start){
-		response(cfd, 400, "Bad Request", "text/plain", "Invalid Request");
-         close_connection(cfd, epoll_fd);
-		return;
-	}
-	path_start++;
 
-        char *path_end = strchr(path_start, ' '); // 다음 ' '에서 끝남
-        if(!path_end){
-		response(cfd, 400, "Bad Request", "text/plain", "Invalid Request");
-         close_connection(cfd, epoll_fd);
-		return;
-	}
-	*path_end='\0';
-
-    	if(strncmp(buf,"GET",3)==0){
-		handle_get(cfd,path_start);
-	}
-    	else if (strncmp(buf, "HEAD", 4) == 0)
-    	{
-		handle_head(cfd, path_start);
-	}
-        else
-        {
-            response(cfd, 400, "Bad Request", "text/plain", "Invalid Request");
-        }
-    	
-	close_connection(cfd,epoll_fd);
-}
-
-
-void handle_req(int cfd, const char *buf)
-{
-    char method[16], path[256], protocol[16];
-    sscanf(buf, "%s %s %s", method, path, protocol);
-    printf("Client request:\n");
-    printf("Method: %s, Path: %s, Protocol: %s\n", method, path, protocol);
-
-    // 요청 메소드 GET인 경우 고려
-    if (strcmp(method, "GET") == 0)
+    // 요청 URL 추출
+    char *path_start = strchr(buf, ' ');
+    if (!path_start)
     {
-        handle_get(cfd, path + 1); // GET 요청 처리
+        response(cfd, 400, "Bad Request", "text/plain", "Invalid Request");
+        close_connection(cfd, epoll_fd);
+        return;
     }
-    else if (strcmp(method, "HEAD") == 0)
+    path_start++;
+
+    char *path_end = strchr(path_start, ' '); // 다음 ' '에서 끝남
+    if (!path_end)
     {
-        handle_head(cfd, path + 1); // HEAD 요청 처리
+        response(cfd, 400, "Bad Request", "text/plain", "Invalid Request");
+        close_connection(cfd, epoll_fd);
+        return;
+    }
+    *path_end = '\0';
+    //요청 메소드 처리
+    if (strncmp(buf, "GET", 3) == 0)
+    {
+        handle_get(cfd, path_start);
+    }
+    else if (strncmp(buf, "HEAD", 4) == 0)
+    {
+        handle_head(cfd, path_start);
     }
     else
     {
-        const char *body = "<html><body><h1>405 Method Not Allowed</h1></body></html>";
-        response(cfd, 405, "Method Not Allowed", "text/html", body);
+        response(cfd, 400, "Bad Request", "text/plain", "Invalid Request");
     }
+
+    close_connection(cfd, epoll_fd); //연결 종료
 }
 
+
 void handle_get(int cfd, const char *fname)
+//이미지와 일반파일 나눠서 처리
 {
     char path[256];
     snprintf(path, sizeof(path), "file/%s", fname);
@@ -131,17 +109,18 @@ void handle_get(int cfd, const char *fname)
             // 청크 크기 전송
             char chunk_header[32];
             int header_len = snprintf(chunk_header, sizeof(chunk_header), "%zx\r\n", bytes_read);
-            
-	
-	    if(send_data(cfd,chunk_header,header_len)==-1||send_data(cfd,buffer,bytes_read)==-1||send_data(cfd,"\r\n", 2)==-1){
-	     	perror("Failed to send chunk data");
-		break;
-	    }
+
+            if (send_data(cfd, chunk_header, header_len) == -1 || send_data(cfd, buffer, bytes_read) == -1 || send_data(cfd, "\r\n", 2) == -1)
+            {
+                perror("Failed to send chunk data");
+                break;
+            }
         }
-	
-	if (send_data(cfd,"0\r\n\r\n",5)==-1){
-	perror("Failed to send chunk data");
-	}
+
+        if (send_data(cfd, "0\r\n\r\n", 5) == -1)
+        {
+            perror("Failed to send chunk data");
+        }
     }
     else
     {
@@ -170,19 +149,19 @@ void handle_get(int cfd, const char *fname)
                  "Content-Length: %ld\r\n"
                  "\r\n",
                  mime_type, file_size);
-        
-	if (send_data(cfd, header, strlen(header)) == -1 ||
+
+        if (send_data(cfd, header, strlen(header)) == -1 ||
             send_data(cfd, buf, file_size) == -1)
         {
             perror("Failed to send file data");
         }
         free(buf);
     }
-
 }
 
 void handle_head(int cfd, const char *fname)
 {
+    //헤더만 전송
     char path[100];
     snprintf(path, sizeof(path), "file/%s", fname);
 
